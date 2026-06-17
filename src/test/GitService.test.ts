@@ -20,6 +20,28 @@ class StubGitCommandRunner implements GitCommandRunner {
 }
 
 suite('GitService', () => {
+	test('detects when the workspace is a Git repository', async () => {
+		const runner = new StubGitCommandRunner('true\n');
+		const service = new GitService('/workspace', runner);
+
+		const isRepository = await service.isRepository();
+
+		assert.strictEqual(isRepository, true);
+		assert.deepStrictEqual(runner.calls[0], {
+			args: ['rev-parse', '--is-inside-work-tree'],
+			cwd: '/workspace',
+		});
+	});
+
+	test('returns false when the workspace is not a Git repository', async () => {
+		const runner = new StubGitCommandRunner('', new Error('not a git repo'));
+		const service = new GitService('/workspace', runner);
+
+		const isRepository = await service.isRepository();
+
+		assert.strictEqual(isRepository, false);
+	});
+
 	test('returns no files for a clean worktree', async () => {
 		const service = new GitService('/workspace', new StubGitCommandRunner(''));
 
