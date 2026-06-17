@@ -1,12 +1,13 @@
 /// <reference lib="dom" />
 import * as vscode from 'vscode';
+import { registerCheckWorkspaceCommand } from './commands/CheckWorkspaceCommand';
+import { registerGenerateDocumentationUpdateCommand } from './commands/GenerateDocumentationUpdateCommand';
 
 export function activate(context: vscode.ExtensionContext) {
-	const disposable = vscode.commands.registerCommand('docDrift.checkWorkspace', () => {
-		vscode.window.showInformationMessage('Documentation Drift Detector Ready');
-	});
-
-	context.subscriptions.push(disposable);
+	context.subscriptions.push(
+		registerCheckWorkspaceCommand(),
+		registerGenerateDocumentationUpdateCommand(context),
+	);
 }
 
 export function deactivate() {}
