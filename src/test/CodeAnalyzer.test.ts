@@ -19,6 +19,9 @@ suite('CodeAnalyzer', () => {
 			],
 			returnType: 'Promise<string>',
 			signature: 'greet(name: string, count?: unknown): Promise<string>',
+			requiredParameterCount: 1,
+			maximumParameterCount: 2,
+			hasRestParameter: false,
 		}]);
 	});
 
@@ -35,6 +38,9 @@ suite('CodeAnalyzer', () => {
 			result.functions[0].signature,
 			'log(prefix?: string, ...values: number[]): void',
 		);
+		assert.strictEqual(result.functions[0].requiredParameterCount, 0);
+		assert.strictEqual(result.functions[0].maximumParameterCount, 1);
+		assert.strictEqual(result.functions[0].hasRestParameter, true);
 	});
 
 	test('extracts named and anonymous default exports', () => {
