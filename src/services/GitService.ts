@@ -33,6 +33,15 @@ export class GitService {
 		private readonly runner: GitCommandRunner = new ProcessGitCommandRunner(),
 	) {}
 
+	async isRepository(): Promise<boolean> {
+		try {
+			await this.runner.run(['rev-parse', '--is-inside-work-tree'], this.workspacePath);
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
 	async getChangedFiles(): Promise<string[]> {
 		// NUL delimiters preserve unusual file names without quote parsing.
 		const output = await this.runner.run(

@@ -12,6 +12,9 @@ export interface ExportedFunction {
 	parameters: FunctionParameter[];
 	returnType: string;
 	signature: string;
+	requiredParameterCount: number;
+	maximumParameterCount: number;
+	hasRestParameter: boolean;
 }
 
 export interface ExportedClass {
@@ -70,6 +73,9 @@ export class CodeAnalyzer {
 			parameters,
 			returnType,
 			signature: this.createSignature(name, parameters, returnType),
+			requiredParameterCount: this.countRequiredParameters(parameters),
+			maximumParameterCount: this.countMaximumParameters(parameters),
+			hasRestParameter: parameters.some((parameter) => parameter.rest),
 		};
 	}
 
@@ -103,6 +109,15 @@ export class CodeAnalyzer {
 		const rest = parameter.rest ? '...' : '';
 		const optional = parameter.optional ? '?' : '';
 		return `${rest}${parameter.name}${optional}: ${parameter.type}`;
+	}
+
+	private countRequiredParameters(parameters: FunctionParameter[]): number {
+		return parameters.filter((parameter) => !parameter.optional && !parameter.rest)
+			.length;
+	}
+
+	private countMaximumParameters(parameters: FunctionParameter[]): number {
+		return parameters.filter((parameter) => !parameter.rest).length;
 	}
 
 	private extractClasses(sourceFile: ts.SourceFile): ExportedClass[] {

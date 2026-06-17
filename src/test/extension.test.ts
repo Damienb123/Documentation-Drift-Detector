@@ -1,15 +1,61 @@
-import * as assert from 'assert';
+import * as assert from 'node:assert';
+import {
+	ConfigurationReader,
+	ExtensionConfigurationService,
+} from '../services/ExtensionConfigurationService';
 
-// You can import and use all API from the 'vscode' module
-// as well as import your extension to test it
-import * as vscode from 'vscode';
-// import * as myExtension from '../../extension';
+class StubConfigurationReader implements ConfigurationReader {
+	constructor(private readonly values: Map<string, unknown>) {}
 
-suite('Extension Test Suite', () => {
-	vscode.window.showInformationMessage('Start all tests.');
+	get<T>(section: string): T | undefined {
+		return this.values.get(section) as T | undefined;
+	}
+}
 
-	test('Sample test', () => {
-		assert.strictEqual(-1, [1, 2, 3].indexOf(5));
-		assert.strictEqual(-1, [1, 2, 3].indexOf(0));
+suite('ExtensionConfigurationService', () => {
+	test('loads release defaults', () => {
+		const configuration = new ExtensionConfigurationService(reader()).load();
+
+		assert.deepStrictEqual(configuration, {
+			ai: {
+				enabled: false,
+				openAIApiKey: undefined,
+				openAIModel: 'gpt-4.1-mini',
+			},
+			documentationScanPaths: ['README.md', 'docs', 'examples'],
+		});
 	});
+
+	test('loads AI settings and documentation scan paths', () => {
+		const configuration = new ExtensionConfigurationService(reader([
+			['ai.enabled', true],
+			['ai.openAIApiKey', 'sk-user-provided'],
+			['ai.openAIModel', 'gpt-4.1-mini'],
+			['documentation.scanPaths', ['README.md', 'guides', 'samples']],
+		])).load();
+
+		assert.deepStrictEqual(configuration, {
+			ai: {
+				enabled: true,
+				openAIApiKey: 'sk-user-provided',
+				openAIModel: 'gpt-4.1-mini',
+			},
+			documentationScanPaths: ['README.md', 'guides', 'samples'],
+		});
+	});
+
+	test('falls back to default scan paths when configured paths are empty', () => {
+		const configuration = new ExtensionConfigurationService(reader([
+			['documentation.scanPaths', [' ', '']],
+		])).load();
+
+		assert.deepStrictEqual(
+			configuration.documentationScanPaths,
+			['README.md', 'docs', 'examples'],
+		);
+	});
+
+	function reader(entries: Array<[string, unknown]> = []): ConfigurationReader {
+		return new StubConfigurationReader(new Map(entries));
+	}
 });

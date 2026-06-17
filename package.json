@@ -1,8 +1,9 @@
 {
-  "name": "helloworld",
-  "displayName": "HelloWorld",
-  "description": "",
+  "name": "documentation-drift-detector",
+  "displayName": "Documentation Drift Detector",
+  "description": "Detect potential documentation drift in TypeScript projects before release.",
   "version": "0.0.1",
+  "publisher": "documentation-drift-detector",
   "engines": {
     "vscode": "^1.120.0"
   },
@@ -16,8 +17,44 @@
       {
         "command": "docDrift.checkWorkspace",
         "title": "Documentation Drift: Check Workspace"
+      },
+      {
+        "command": "docDrift.generateDocumentationUpdate",
+        "title": "Documentation Drift: Generate Documentation Update"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Documentation Drift Detector",
+      "properties": {
+        "docDrift.ai.enabled": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Enable optional AI assistance for generating documentation updates. Documentation drift detection works offline when this is disabled."
+        },
+        "docDrift.ai.openAIApiKey": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "OpenAI API key used only when generating documentation updates. Drift detection works without this key."
+        },
+        "docDrift.ai.openAIModel": {
+          "type": "string",
+          "default": "gpt-4.1-mini",
+          "markdownDescription": "OpenAI model used for optional documentation update generation."
+        },
+        "docDrift.documentation.scanPaths": {
+          "type": "array",
+          "default": [
+            "README.md",
+            "docs",
+            "examples"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "markdownDescription": "Workspace-relative files or directories scanned for documentation references."
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
@@ -25,7 +62,10 @@
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "test:unit": "npx mocha --ui tdd \"out/test/CodeAnalyzer.test.js\" \"out/test/GitService.test.js\" \"out/test/DocumentationIndex.test.js\" \"out/test/DocumentationDriftDetector.test.js\" \"out/test/DocumentationDriftWorkflow.test.js\" \"out/test/AIConfigurationService.test.js\" \"out/test/DocumentationUpdateService.test.js\" \"out/test/OpenAIProvider.test.js\" \"out/test/ExtensionConfigurationService.test.js\"",
+    "ci": "npm run compile && npm run lint && npm run test:unit",
+    "package:extension": "npx @vscode/vsce package --out documentation-drift-detector-beta.vsix"
   },
   "dependencies": {
     "typescript": "^5.9.3"
