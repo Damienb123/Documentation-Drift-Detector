@@ -1,69 +1,84 @@
-# Documentation-Drift-Detector
+# Documentation Drift Detector
 
-A VS Code extension that detects when code changes but related documentation has not been updated.
+Documentation Drift Detector is a VS Code extension that helps TypeScript projects catch documentation drift before code is committed or released.
 
-## Why?
+It scans changed exported APIs and local documentation, then reports cases where documentation may no longer match the source code. Detection works offline and does not require AI.
 
-Developers often update code but forget to update documentation.
+## Beta Notice
 
-### Common examples:
+Documentation Drift Detector is currently in beta.
 
-- Function signatures change
-- README examples become outdated
-- API documentation no longer matches implementation
-- Example projects stop working
+The extension may produce false positives and does not yet support every form of documentation drift. It is intended to surface likely documentation issues early, especially around exported TypeScript APIs and local examples.
 
-This extension helps identify potential documentation drift before code is committed or merged.
+## Supported Detection
 
-## Tech Stack
-### Core
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-![VS Code Extension API](https://img.shields.io/badge/VS%20Code%20Extension%20API-007ACC?style=for-the-badge&logo=visualstudiocode&logoColor=white)
-![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)
-![TypeScript Compiler API](https://img.shields.io/badge/TypeScript%20Compiler%20API-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+Current beta detection includes:
 
-### AI
-![OpenAI](https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white)
-![Ollama](https://img.shields.io/badge/Ollama-000000?style=for-the-badge&logo=ollama&logoColor=white)
+- Undocumented exported functions
+- Undocumented exported classes
+- Function argument/signature mismatches in documented examples
+- Documentation reference scanning across:
+  - `README.md`
+  - `docs/`
+  - `examples/`
 
-### Testing
-![Vitest](https://img.shields.io/badge/Vitest-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
-![Playwright](https://img.shields.io/badge/Playwright-2EAD33?style=for-the-badge&logo=playwright&logoColor=white)
+For example, if code exports:
 
-## Features
-### MVP
-- Analyze TypeScript projects
-- Detect exported function changes
-- Detect exported class changes
-- Scan README.md
-- Scan example files
-- Warn when documentation may be outdated
-### Planned Features
-- AI-generated documentation updates
-- GitHub Pull Request integration
-- Documentation diagnostics in the Problems panel
-- Quick Fix actions
-- Multi-language support
+```ts
+export function createUser(name: string, email: string): unknown
+```
 
-## Development
-### Install
-``` npm install ```
-### Build
-``` npm run compile ```
-### Run
+and documentation shows:
 
-Press:
+```ts
+createUser("Smith")
+```
 
-F5
+the extension can report a drift finding because the documented example provides one argument while the function requires two.
 
-This launches the Extension Development Host.
+## Commands
 
-Use the Command Palette:
+- `Documentation Drift: Check Workspace`
+- `Documentation Drift: Generate Documentation Update`
 
-Documentation Drift: Check Workspace
+## How Detection Works
 
-## Current Status
+`Documentation Drift: Check Workspace` runs the local detection workflow:
 
-Early Development
+```text
+Command -> GitService -> CodeAnalyzer -> DocumentationScanner -> DriftDetector -> OutputChannel -> Popup Summary
+```
 
-The project is currently focused on building the core detection engine.
+The report includes:
+
+- Workspace
+- Git status
+- Changed files
+- Documentation files scanned
+- Exported APIs found
+- Drift findings
+
+## Extension Settings
+
+- `docDrift.documentation.scanPaths`: Workspace-relative files or directories to scan. Defaults to `["README.md", "docs", "examples"]`.
+- `docDrift.ai.enabled`: Enables optional AI assistance. Defaults to `false`.
+- `docDrift.ai.openAIApiKey`: User-provided OpenAI API key for optional documentation generation.
+- `docDrift.ai.openAIModel`: OpenAI model used for optional generation. Defaults to `gpt-4.1-mini`.
+
+## AI Behavior
+
+AI is not required for detection. If AI assistance is disabled or no API key is configured, the extension continues to scan documentation and detect possible drift locally.
+
+When AI assistance is enabled, generated documentation is returned as a preview so you can review it before making edits.
+
+## Beta Scope
+
+This beta focuses on the local MVP:
+
+- TypeScript projects
+- Exported function and class analysis
+- Local documentation scanning
+- Function argument-count validation for documented calls
+- Optional OpenAI documentation update previews
+
+The beta does not include billing, authentication, backend services, team dashboards, GitHub integration, or cloud infrastructure.
