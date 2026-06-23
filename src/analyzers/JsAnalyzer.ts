@@ -1,6 +1,6 @@
 // JavaScript language support for plugin
 import * as ts from 'typescript';
-import { ExportedFunction, FunctionParameter } from './CodeAnalyzer';
+import { CodeAnalysis, ExportedClass, ExportedFunction, FunctionParameter } from './CodeAnalyzer';
 
 
 export interface ExportedClass {
@@ -28,6 +28,11 @@ export class JsAnalyzer {
 			classes: this.extractClasses(sourceFile),
 		};
 	}
+
+	// --------------------------------------------------------------------------------------------------
+	// Main area of the development for JS support - In progress
+
+	// JS ES model support - takes some qualities of the main CodeAnalyzer but is reused to support JS syntax
 	private extractFunctions(sourceFile: ts.SourceFile): ExportedFunction[] {
 			return sourceFile.statements
 				.filter(ts.isFunctionDeclaration)
@@ -37,7 +42,8 @@ export class JsAnalyzer {
 		}
 	
 		private createFunction(
-				declaration: ts.FunctionDeclaration,
+				name: string,
+				parameters: ts.NodeArray<ts.ParameterDeclaration>,
 				sourceFile: ts.SourceFile,
 			): ExportedFunction {
 				const name = declaration.name?.text ?? 'default';
@@ -59,6 +65,8 @@ export class JsAnalyzer {
 				};
 			}
 		
+			// -------------------------------------------------------------------------------
+
 			private createParameter(
 				parameter: ts.ParameterDeclaration,
 				sourceFile: ts.SourceFile,
@@ -104,20 +112,20 @@ export class JsAnalyzer {
 				return sourceFile.statements
 					.filter(ts.isClassDeclaration)
 					.filter((declaration) => this.isExported(declaration))
-					.filter((declaration) => this.hasApiName(declaration))
+					.filter((declaration) => this.hasClassApiName(declaration))
 					.map((declaration) => ({
 						name: declaration.name?.text ?? 'default',
 					}));
 			}
 
-		private hasApiName(node: ts.ClassDeclaration | ts.FunctionDeclaration): boolean {
-				// Parser recovery can create exported declarations with an empty name.
-				// Anonymous declarations are valid APIs only when they are default exports.
-				return Boolean(node.name?.text) || this.hasModifier(
-					node,
-					ts.SyntaxKind.DefaultKeyword,
-				);
-			}
+		private hasFunctionApiName(declaration: ts.FunctionDeclaration): boolean {
+			return Boolean(declaration.name?.text) ||
+			this.hasModifier(declaration, ts.SyntaxKind.DefaultKeyword)
+		}
+		private hasClassApiName(declaration: ts.ClassDeclaration): boolean {
+			return Boolean(declaration.name?.text) ||
+			this.hasModifier(declaration, ts.SyntaxKind.DefaultKeyword)
+		}
 		
 			private isExported(node: ts.Node): boolean {
 				return this.hasModifier(node, ts.SyntaxKind.ExportKeyword);
