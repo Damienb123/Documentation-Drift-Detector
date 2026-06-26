@@ -292,6 +292,13 @@ function isTypeScriptSourceFile(filePath: string): boolean {
 		!filePath.endsWith('.d.ts');
 }
 
+// New file support routing - for JavaScript
+// excludes .d.ts
+// needs to be connected once the JS analzyer is complete
+function isJavaScriptSourceFile(filePath: string): boolean {
+	return (filePath.endsWith('.js') || filePath.endsWith('.jsx'))
+}
+
 function getErrorMessage(error: unknown): string {
 	if (error instanceof Error) {
 		return error.message;
