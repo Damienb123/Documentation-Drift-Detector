@@ -33,13 +33,60 @@ export class JsAnalyzer {
 	// Main area of the development for JS support - In progress
 
 	// JS ES model support - takes some qualities of the main CodeAnalyzer but is reused to support JS syntax
-	private extractFunctions(sourceFile: ts.SourceFile): ExportedFunction[] {
-			return sourceFile.statements
-				.filter(ts.isFunctionDeclaration)
-				.filter((node) => this.isExported(node))
-				.filter((node) => this.hasApiName(node))
-				.map((node) => this.createFunction(node, sourceFile));
+	private extractFunction(sourceFile: ts.SourceFile): ExportedFunction[] {
+		// rewritten to return function declaration
+			return [
+				...this.extractFunctionDeclarations(sourceFile),
+				...this.extractVariableFunctions(sourceFile),
+			];
+				
 		}
+		// Skeleton of function declaration
+		// Push extractFunctionDeclaration and extractVariableFunction functions to repo
+		private extractFunctionDeclarations(sourceFile: ts.SourceFile): ExportedFunction[] {
+			return sourceFile.statements
+				.filter((ts.isFunctionDeclaration))
+				.filter((declaration) => this.isExported(declaration))
+				.filter((declaration) => this.hasFunctionApiName(declaration))
+				.map((declaration) =>
+					this.createFunction(
+						declaration.name?.text ?? 'default',
+						declaration.parameters,
+						sourceFile,
+					),
+				);
+		}
+		// Variable extraction within functions in a source file of JS
+		// filters valid function variables and valid variable params when a function is created
+		private extractVariableFunctions(sourceFile: ts.SourceFile): ExportedFunction[]{
+			return sourceFile.statements
+				.filter((ts.isVariableStatement))
+				.filter((statement) => this.isExported(statement))
+				.flatMap((statement) => 
+				statement.declarationList.declarations
+					.filter((declaration) => this.isFunctionVariable(declaration))
+					.map((declaration) => 
+					this.createFunction(
+						declaration.name.getText(sourceFile),
+						this.getFunctionVariableParameters(declaration),
+						sourceFile,
+					),
+				),
+			);
+		}
+
+		private isFunctionVariable(
+			declaration: ts.VariableDeclaration,
+		): boolean {
+			return Boolean(
+				declaration.initializer && 
+				(ts.isArrowFunction(declaration.initializer) ||
+			ts.isFunctionDeclaration(declaration.initializer)),
+			);
+		}
+		
+		// TODO: complete the function and refactor the createFunction to work against utilizing ES model for JS
+		private getFunctionVariableParameters()
 	
 		private createFunction(
 				name: string,
