@@ -86,7 +86,19 @@ export class JsAnalyzer {
 		}
 		
 		// TODO: complete the function and refactor the createFunction to work against utilizing ES model for JS
-		private getFunctionVariableParameters()
+		private getFunctionVariableParameters(
+			declaration: ts.VariableDeclaration,
+		): ts.NodeArray<ts.ParameterDeclaration> {
+			const initializer = declaration.initializer;
+
+				if (
+					initializer && 
+					(ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer))
+				){
+					return initializer.parameters;
+				}
+				return ts.factory.createNodeArray();
+			}
 	
 		private createFunction(
 				name: string,
