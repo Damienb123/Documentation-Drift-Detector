@@ -1,9 +1,19 @@
 {
   "name": "documentation-drift-detector",
   "displayName": "Documentation Drift Detector",
+  "icon": "images/DocuDriftDetectimage.png",
   "description": "Detect potential documentation drift in TypeScript projects before release.",
-  "version": "0.0.1",
-  "publisher": "documentation-drift-detector",
+  "version": "0.0.2",
+  "publisher": "DebugDamien",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Damienb123/Documentation-Drift-Detector.git"
+  },
+  "homepage": "https://github.com/Damienb123/Documentation-Drift-Detector",
+  "bugs": {
+    "url": "https://github.com/Damienb123/Documentation-Drift-Detector/issues"
+  },
+  "license": "MIT",
   "engines": {
     "vscode": "^1.120.0"
   },
@@ -63,7 +73,7 @@
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
     "test": "vscode-test",
-    "test:unit": "npx mocha --ui tdd \"out/test/CodeAnalyzer.test.js\" \"out/test/GitService.test.js\" \"out/test/DocumentationIndex.test.js\" \"out/test/DocumentationDriftDetector.test.js\" \"out/test/DocumentationDriftWorkflow.test.js\" \"out/test/AIConfigurationService.test.js\" \"out/test/DocumentationUpdateService.test.js\" \"out/test/OpenAIProvider.test.js\" \"out/test/ExtensionConfigurationService.test.js\"",
+    "test:unit": "npx mocha --ui tdd \"out/test/CodeAnalyzer.test.js\" \"out/test/JsAnalyzer.test.js\" \"out/test/AnalyzerFactory.test.js\" \"out/test/GitService.test.js\" \"out/test/DocumentationIndex.test.js\" \"out/test/DocumentationDriftDetector.test.js\" \"out/test/DocumentationDriftWorkflow.test.js\" \"out/test/AIConfigurationService.test.js\" \"out/test/DocumentationUpdateService.test.js\" \"out/test/OpenAIProvider.test.js\" \"out/test/ExtensionConfigurationService.test.js\"",
     "ci": "npm run compile && npm run lint && npm run test:unit",
     "package:extension": "npx @vscode/vsce package --out documentation-drift-detector-beta.vsix"
   },
