@@ -1,6 +1,8 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import { AnalyzerFactory } from '../analyzers/AnalyzerFactory';
 import { CodeAnalysis, CodeAnalyzer } from '../analyzers/CodeAnalyzer';
+import { JsAnalyzer } from '../analyzers/JsAnalyzer';
 import {
 	DocumentationDocument,
 	DocumentationIndex,
@@ -29,7 +31,9 @@ export interface WorkflowLogger {
 
 export interface WorkflowDependencies {
 	gitService?: WorkflowGitService;
+	analyzerFactory?: AnalyzerFactory;
 	codeAnalyzer?: CodeAnalyzer;
+	jsAnalyzer?: JsAnalyzer;
 	documentationIndex?: DocumentationIndex;
 	driftDetector?: DocumentationDriftDetector;
 	logger?: WorkflowLogger;
@@ -50,7 +54,7 @@ export interface DocumentationDriftWorkflowResult {
 
 export class DocumentationDriftWorkflow {
 	private readonly gitService: WorkflowGitService;
-	private readonly codeAnalyzer: CodeAnalyzer;
+	private readonly analyzerFactory: AnalyzerFactory;
 	private readonly documentationIndex: DocumentationIndex;
 	private readonly driftDetector: DocumentationDriftDetector;
 	private readonly logger: WorkflowLogger;
@@ -62,7 +66,10 @@ export class DocumentationDriftWorkflow {
 		dependencies: WorkflowDependencies = {},
 	) {
 		this.gitService = dependencies.gitService ?? new GitService(workspacePath);
-		this.codeAnalyzer = dependencies.codeAnalyzer ?? new CodeAnalyzer();
+		this.analyzerFactory = dependencies.analyzerFactory ?? new AnalyzerFactory(
+			dependencies.codeAnalyzer,
+			dependencies.jsAnalyzer,
+		);
 		this.documentationIndex = dependencies.documentationIndex ??
 			new DocumentationIndex(workspacePath, undefined, {
 				scanPaths: options.documentationScanPaths,
@@ -120,25 +127,51 @@ export class DocumentationDriftWorkflow {
 	}
 
 	private async analyzeChangedFiles(changedFiles: string[]): Promise<CodeAnalysis> {
+		this.logger.debug('[AnalyzerFactory] Changed files received:', changedFiles);
+		const sourceFiles = changedFiles.filter((filePath) =>
+			this.analyzerFactory.supports(filePath),
+		);
+		const selectedFiles = new Set(sourceFiles);
+		const skippedFiles = changedFiles.filter((filePath) => !selectedFiles.has(filePath));
+		this.logger.debug('[AnalyzerFactory] Source files selected:', sourceFiles);
+		this.logger.debug(
+			'[AnalyzerFactory] Skipped unsupported changed files:',
+			skippedFiles,
+		);
 		const analyses = await Promise.all(
-			changedFiles
-				.filter(isTypeScriptSourceFile)
-				.map((filePath) => this.analyzeFile(filePath)),
+			sourceFiles.map((filePath) => this.analyzeFile(filePath)),
 		);
 		const codeAnalysis = mergeCodeAnalysis(analyses);
-		this.logger.debug('[CodeAnalyzer] Exported APIs:', countApis(codeAnalysis));
+		this.logger.debug(
+			'[AnalyzerFactory] Merged exported APIs:',
+			countApis(codeAnalysis),
+		);
 		return codeAnalysis;
 	}
 
 	private async analyzeFile(filePath: string): Promise<CodeAnalysis> {
+		const selection = this.analyzerFactory.select(filePath);
+		if (!selection) {
+			return { functions: [], classes: [] };
+		}
+
 		try {
 			const sourceText = await this.readFile(
 				path.join(this.workspacePath, filePath),
 				'utf8',
 			);
-			return this.codeAnalyzer.analyze(sourceText, filePath);
+			const analysis = selection.analyzer.analyze(sourceText, filePath);
+			this.logger.debug('[AnalyzerFactory] Analyzed source file:', {
+				filePath,
+				analyzer: selection.name,
+				exportedApis: countApis(analysis),
+			});
+			return analysis;
 		} catch (error) {
-			this.logger.debug('[CodeAnalyzer] Skipped changed TypeScript file:', {
+			const message = isMissingFileError(error)
+				? '[AnalyzerFactory] Skipped missing changed source file:'
+				: '[AnalyzerFactory] Skipped unreadable changed source file:';
+			this.logger.debug(message, {
 				filePath,
 				error: getErrorMessage(error),
 			});
@@ -287,22 +320,17 @@ function formatList(values: string[]): string {
 	return values.map((value) => `- ${value}`).join('\n');
 }
 
-function isTypeScriptSourceFile(filePath: string): boolean {
-	return (filePath.endsWith('.ts') || filePath.endsWith('.tsx')) &&
-		!filePath.endsWith('.d.ts');
-}
-
-// New file support routing - for JavaScript
-// excludes .d.ts
-// needs to be connected once the JS analzyer is complete
-function isJavaScriptSourceFile(filePath: string): boolean {
-	return (filePath.endsWith('.js') || filePath.endsWith('.jsx'))
-}
-
 function getErrorMessage(error: unknown): string {
 	if (error instanceof Error) {
 		return error.message;
 	}
 
 	return String(error);
+}
+
+function isMissingFileError(error: unknown): boolean {
+	return typeof error === 'object' &&
+		error !== null &&
+		'code' in error &&
+		error.code === 'ENOENT';
 }
